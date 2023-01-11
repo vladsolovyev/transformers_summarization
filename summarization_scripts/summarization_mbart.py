@@ -95,7 +95,9 @@ class MBartModel:
             save_total_limit=3,
             num_train_epochs=1,
             predict_with_generate=True,
-            fp16=False
+            fp16=False,
+            overwrite_output_dir=True,
+            load_best_model_at_end=True
         )
 
     def create_summarization_trainer(self, tokenized_datasets):
@@ -125,7 +127,7 @@ class MBartModel:
         data = data_en
         tokenized_datasets = data.map(self.preprocess_function, batched=True)
         self.summarization_trainer = self.create_summarization_trainer(tokenized_datasets)
-        self.summarization_trainer.train()
+        self.summarization_trainer.train(resume_from_checkpoint=False)
 
 
 if __name__ == '__main__':

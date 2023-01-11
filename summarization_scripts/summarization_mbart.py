@@ -99,6 +99,8 @@ class MBartModel:
         summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name)
         summarization_model.config.decoder_start_token_id = \
             self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
+        summarization_model.config.forced_bos_token_id =\
+            self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
         data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=summarization_model)
         return Seq2SeqTrainer(
             summarization_model,

@@ -8,6 +8,12 @@ from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2S
 
 nltk.download('punkt')
 
+data_es = load_dataset("GEM/xlsum", "spanish")
+data_en = load_dataset("GEM/xlsum", "english")
+data_ru = load_dataset("GEM/xlsum", "russian")
+
+data = data_en
+
 
 # delete it later
 def save_labels(labels):
@@ -36,6 +42,7 @@ class MBartModel:
         self.tokenizer = MBartTokenizer.from_pretrained(model_name, model_max_length=max_input_length,
                                                         src_lang=src_lang, tgt_lang=tgt_lang)
         self.summarization_trainer = None
+        self.tokenized_datasets = data.map(self.preprocess_function, batched=True)
 
     def preprocess_function(self, data):
         model_inputs = self.tokenizer(data["text"],
@@ -84,10 +91,10 @@ class MBartModel:
         model_name = self.model_name.split("/")[-1]
         return Seq2SeqTrainingArguments(
             "{}-finetuned-xlsum".format(model_name),
-            evaluation_strategy="epoch",
+            evaluation_strategy="steps",
+            eval_steps=50,
             do_train=True,
             do_eval=True,
-            do_predict=True,
             learning_rate=2e-5,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
@@ -100,36 +107,36 @@ class MBartModel:
             load_best_model_at_end=True
         )
 
-    def create_summarization_trainer(self, tokenized_datasets):
+    def train(self):
         summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name)
         summarization_model.config.decoder_start_token_id = \
             self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
         summarization_model.config.forced_bos_token_id =\
             self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
         data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=summarization_model)
-        return Seq2SeqTrainer(
+        self.summarization_trainer = Seq2SeqTrainer(
             summarization_model,
             self.create_training_arguments(),
-            train_dataset=tokenized_datasets["train"],
-            eval_dataset=tokenized_datasets["validation"],
-            predict_dataset=tokenized_datasets["test"],
+            train_dataset=self.tokenized_datasets["train"],
+            eval_dataset=self.tokenized_datasets["validation"],
             data_collator=data_collator,
             tokenizer=self.tokenizer,
             compute_metrics=self.compute_metrics
         )
-
-    def train(self):
-        data_es = load_dataset("GEM/xlsum", "spanish")
-
-        data_en = load_dataset("GEM/xlsum", "english")
-        data_ru = load_dataset("GEM/xlsum", "russian")
-
-        data = data_en
-        tokenized_datasets = data.map(self.preprocess_function, batched=True)
-        self.summarization_trainer = self.create_summarization_trainer(tokenized_datasets)
         self.summarization_trainer.train(resume_from_checkpoint=False)
+
+    def test_predictions(self):
+        test_results = self.summarization_trainer.predict(
+            self.tokenized_datasets["test"],
+            metric_key_prefix="test",
+            max_length=self.max_target_length,
+            num_beams=5
+        )
+        self.summarization_trainer.log_metrics("test", test_results.metrics)
+        self.summarization_trainer.save_metrics("test", test_results.metrics)
 
 
 if __name__ == '__main__':
     model = MBartModel()
     model.train()
+    model.test_predictions()

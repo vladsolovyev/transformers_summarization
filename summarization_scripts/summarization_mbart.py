@@ -85,6 +85,9 @@ class MBartModel:
         return Seq2SeqTrainingArguments(
             "{}-finetuned-xlsum".format(model_name),
             evaluation_strategy="epoch",
+            do_train=True,
+            do_eval=True,
+            do_predict=True,
             learning_rate=2e-5,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
@@ -107,6 +110,7 @@ class MBartModel:
             self.create_training_arguments(),
             train_dataset=tokenized_datasets["train"],
             eval_dataset=tokenized_datasets["validation"],
+            predict_dataset=tokenized_datasets["test"],
             data_collator=data_collator,
             tokenizer=self.tokenizer,
             compute_metrics=self.compute_metrics

@@ -91,8 +91,7 @@ class MBartModel:
         model_name = self.model_name.split("/")[-1]
         return Seq2SeqTrainingArguments(
             "{}-finetuned-xlsum".format(model_name),
-            evaluation_strategy="steps",
-            eval_steps=50,
+            evaluation_strategy="epoch",
             do_train=True,
             do_eval=True,
             learning_rate=2e-5,
@@ -103,15 +102,14 @@ class MBartModel:
             num_train_epochs=1,
             predict_with_generate=True,
             fp16=False,
-            overwrite_output_dir=True,
-            load_best_model_at_end=True
+            overwrite_output_dir=True
         )
 
     def train(self):
         summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name)
         summarization_model.config.decoder_start_token_id = \
             self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
-        summarization_model.config.forced_bos_token_id =\
+        summarization_model.config.forced_bos_token_id = \
             self.tokenizer.lang_code_to_id[self.tokenizer.tgt_lang]
         data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=summarization_model)
         self.summarization_trainer = Seq2SeqTrainer(

@@ -13,19 +13,6 @@ data_en = load_dataset("GEM/xlsum", "english")
 data_ru = load_dataset("GEM/xlsum", "russian")
 
 
-# delete it later
-def save_labels(labels):
-    with open("labels.txt", "w") as file:
-        file.write("Labels < 0\n")
-        file.write("Indices:\n")
-        file.write("{}\n".format(np.argwhere(labels < 0)))
-        file.write("{}\n".format(labels[labels < 0]))
-        file.write("Labels >= 0\n")
-        file.write("Indices:\n")
-        file.write("{}\n".format(np.argwhere(labels >= 0)))
-        file.write("{}\n".format(labels[labels >= 0]))
-
-
 def calculate_rouge_score(predictions, references):
     return evaluate.load("rouge").compute(predictions=predictions,
                                           references=references,
@@ -72,9 +59,6 @@ class MBartModel:
     def decode_labels(self, predictions, labels):
         decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
 
-        # delete it later. Just to check if -100 is possible in mbart
-        save_labels(labels)
-        # Replace -100 in the labels as we can't decode them.
         labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
         decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 

@@ -12,8 +12,6 @@ data_es = load_dataset("GEM/xlsum", "spanish")
 data_en = load_dataset("GEM/xlsum", "english")
 data_ru = load_dataset("GEM/xlsum", "russian")
 
-data = data_en
-
 
 # delete it later
 def save_labels(labels):
@@ -28,8 +26,24 @@ def save_labels(labels):
         file.write("{}\n".format(labels[labels >= 0]))
 
 
+def calculate_rouge_score(predictions, references):
+    return evaluate.load("rouge").compute(predictions=predictions,
+                                          references=references,
+                                          use_stemmer=True)
+
+
+def calculate_bert_score(predictions, references):
+    bert_result = evaluate.load("bertscore").compute(predictions=predictions,
+                                                     references=references,
+                                                     model_type="bert-base-multilingual-cased")
+    if bert_result["hashcode"]:
+        del bert_result["hashcode"]
+    return {"bert_score_{}".format(k): np.mean(v) for k, v in bert_result.items()}
+
+
 class MBartModel:
     def __init__(self,
+                 dataset,
                  model_name="facebook/mbart-large-cc25",
                  max_input_length=1024,
                  max_target_length=512,
@@ -38,11 +52,10 @@ class MBartModel:
         self.model_name = model_name
         self.max_input_length = max_input_length
         self.max_target_length = max_target_length
-        self.metric = evaluate.load("rouge")
         self.tokenizer = MBartTokenizer.from_pretrained(model_name, model_max_length=max_input_length,
                                                         src_lang=src_lang, tgt_lang=tgt_lang)
         self.summarization_trainer = None
-        self.tokenized_datasets = data.map(self.preprocess_function, batched=True)
+        self.tokenized_datasets = dataset.map(self.preprocess_function, batched=True)
 
     def preprocess_function(self, data):
         model_inputs = self.tokenizer(data["text"],
@@ -65,22 +78,18 @@ class MBartModel:
         labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
         decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-        # Rouge expects a newline after each sentence
         decoded_preds = ["\n".join(nltk.sent_tokenize(pred.strip())) for pred in decoded_preds]
         decoded_labels = ["\n".join(nltk.sent_tokenize(label.strip())) for label in decoded_labels]
         return decoded_preds, decoded_labels
 
-    def compute_metrics(self, eval_pred):
+    def calculate_metrics(self, eval_pred):
         predictions, labels = eval_pred
         decoded_preds, decoded_labels = self.decode_labels(predictions, labels)
 
-        result = self.metric.compute(predictions=decoded_preds,
-                                     references=decoded_labels,
-                                     use_stemmer=True)
-        # Extract a few results
-        result = {key: value * 100 for key, value in result.items()}
+        results = calculate_rouge_score(decoded_preds, decoded_labels) | calculate_bert_score(decoded_preds,
+                                                                                              decoded_labels)
+        result = {key: value * 100 for key, value in results.items()}
 
-        # Add mean generated length
         prediction_lens = [np.count_nonzero(pred != self.tokenizer.pad_token_id) for pred in predictions]
         result["gen_len"] = np.mean(prediction_lens)
 
@@ -119,7 +128,7 @@ class MBartModel:
             eval_dataset=self.tokenized_datasets["validation"],
             data_collator=data_collator,
             tokenizer=self.tokenizer,
-            compute_metrics=self.compute_metrics
+            compute_metrics=self.calculate_metrics
         )
         self.summarization_trainer.train(resume_from_checkpoint=False)
 
@@ -135,6 +144,6 @@ class MBartModel:
 
 
 if __name__ == '__main__':
-    model = MBartModel()
+    model = MBartModel(data_en)
     model.train()
     model.test_predictions()

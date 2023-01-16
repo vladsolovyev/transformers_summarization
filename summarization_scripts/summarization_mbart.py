@@ -84,7 +84,10 @@ class MBartModel:
         model_name = self.model_name.split("/")[-1]
         return Seq2SeqTrainingArguments(
             "{}-finetuned-xlsum".format(model_name),
-            evaluation_strategy="epoch",
+            evaluation_strategy="steps",
+            save_steps=15000,
+            eval_steps=15000,
+            logging_steps=100,
             do_train=True,
             do_eval=True,
             learning_rate=2e-5,
@@ -95,7 +98,8 @@ class MBartModel:
             num_train_epochs=1,
             predict_with_generate=True,
             fp16=False,
-            overwrite_output_dir=True
+            overwrite_output_dir=True,
+            load_best_model_at_end=True
         )
 
     def train(self):

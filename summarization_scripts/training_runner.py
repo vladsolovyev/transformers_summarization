@@ -3,7 +3,7 @@ from datetime import datetime
 from datasets import load_dataset, Dataset
 from transformers import MBartTokenizer
 
-from summarization_scripts.summarization_mbart import MBartSummarizationModel
+from summarization_mbart import MBartSummarizationModel
 
 MAX_INPUT_LENGTH = 1024
 MAX_TARGET_LENGTH = 512

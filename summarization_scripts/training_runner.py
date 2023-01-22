@@ -1,6 +1,7 @@
 import gc
 from datetime import datetime
 
+import pandas as pd
 from datasets import load_dataset, Dataset
 
 from summarization_mbart import MBartSummarizationModel
@@ -12,6 +13,7 @@ tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_ma
 dataset_languages = ["english", "spanish", "russian"]
 model_languages = ["en_XX", "es_XX", "ru_RU"]
 tokenized_datasets = []
+metrics = dict()
 
 
 def preprocess_function(dataset_split):
@@ -45,7 +47,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
                 tokenized_dataset["validation"],
                 "{}/{}".format(output_dir, model_language),
                 save_model=(model_language == "en_XX"))
-    model.test_predictions(tokenized_dataset["test"])
+    metrics[model_language] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
 
@@ -55,7 +57,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_zero_{}".format(output_dir, model_language))
-    model.test_predictions(tokenized_dataset["test"])
+    metrics["en_XX_zero_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
 
@@ -68,7 +70,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
         model.train(Dataset.from_dict(tokenized_dataset["train"][:data_size]),
                     Dataset.from_dict(tokenized_dataset["validation"][:data_size]),
                     "{}/en_XX_tuned_{}_{}".format(output_dir, model_language, data_size))
-        model.test_predictions(Dataset.from_dict(tokenized_dataset["test"][:data_size]))
+        metrics["en_XX_tuned_{}_{}".format(model_language, data_size)] =\
+            model.test_predictions(Dataset.from_dict(tokenized_dataset["test"][:data_size]))
         del model
         gc.collect()
 
@@ -81,7 +84,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                 tokenized_dataset["validation"],
                 "{}/en_XX_tuned_{}".format(output_dir, model_language),
                 save_model=(model_language == "es_XX"))
-    model.test_predictions(tokenized_dataset["test"])
+    metrics["en_XX_tuned_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
 
@@ -101,6 +104,9 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_tuned_es_XX_and_ru_RU_{}".format(output_dir, model_language))
-    model.test_predictions(tokenized_dataset["test"])
+    metrics["en_XX_tuned_es_XX_and_ru_RU_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
+
+metrics_df = pd.DataFrame.from_dict(metrics, orient='index')
+metrics_df.to_csv("{}/metrics.csv".format(output_dir))

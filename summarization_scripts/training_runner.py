@@ -1,9 +1,10 @@
+import gc
 from datetime import datetime
 
 from datasets import load_dataset, Dataset
-from transformers import MBartTokenizer
 
 from summarization_mbart import MBartSummarizationModel
+from transformers import MBartTokenizer
 
 MAX_INPUT_LENGTH = 1024
 MAX_TARGET_LENGTH = 512
@@ -31,7 +32,10 @@ def preprocess_function(dataset_split):
 for dataset_language, model_language in zip(dataset_languages, model_languages):
     dataset = load_dataset("GEM/xlsum", dataset_language)
     tokenized_datasets.append(dataset.map(preprocess_function, batched=True))
+    del dataset
 
+tokenizer = None
+gc.collect()
 output_dir = datetime.today().strftime('%Y-%m-%d')
 
 # every language separately
@@ -42,6 +46,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
                 "{}/{}".format(output_dir, model_language),
                 save_model=(model_language == "en_XX"))
     model.test_predictions(tokenized_dataset["test"])
+    del model
+    gc.collect()
 
 # zero shot. Evaluate spanish and russian datasets using english model
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -50,6 +56,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_zero_{}".format(output_dir, model_language))
     model.test_predictions(tokenized_dataset["test"])
+    del model
+    gc.collect()
 
 # few shot experiments. Tune english model using few data from spanish and russian datasets
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -61,6 +69,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                     Dataset.from_dict(tokenized_dataset["validation"][:data_size]),
                     "{}/en_XX_tuned_{}_{}".format(output_dir, model_language, data_size))
         model.test_predictions(Dataset.from_dict(tokenized_dataset["test"][:data_size]))
+        del model
+        gc.collect()
 
 # tune english model using complete data from spanish and russian datasets
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -72,6 +82,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                 "{}/en_XX_tuned_{}".format(output_dir, model_language),
                 save_model=(model_language == "es_XX"))
     model.test_predictions(tokenized_dataset["test"])
+    del model
+    gc.collect()
 
 # all three languages together
 model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX".format(output_dir),
@@ -81,9 +93,14 @@ model.train(tokenized_datasets[2]["train"],
             tokenized_datasets[2]["validation"],
             "{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir),
             save_model=True)
+del model
+gc.collect()
+
 for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages):
     model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir),
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_tuned_es_XX_and_ru_RU_{}".format(output_dir, model_language))
     model.test_predictions(tokenized_dataset["test"])
+    del model
+    gc.collect()

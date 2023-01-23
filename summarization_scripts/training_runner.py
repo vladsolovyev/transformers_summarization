@@ -2,6 +2,7 @@ import gc
 from datetime import datetime
 
 import pandas as pd
+import torch
 from datasets import load_dataset, Dataset
 
 from summarization_mbart import MBartSummarizationModel
@@ -50,6 +51,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
     metrics[model_language] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
+    torch.cuda.empty_cache()
 
 # zero shot. Evaluate spanish and russian datasets using english model
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -60,6 +62,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
     metrics["en_XX_zero_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
+    torch.cuda.empty_cache()
 
 # few shot experiments. Tune english model using few data from spanish and russian datasets
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -74,6 +77,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
             model.test_predictions(Dataset.from_dict(tokenized_dataset["test"][:data_size]))
         del model
         gc.collect()
+        torch.cuda.empty_cache()
 
 # tune english model using complete data from spanish and russian datasets
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
@@ -87,6 +91,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
     metrics["en_XX_tuned_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
+    torch.cuda.empty_cache()
 
 # all three languages together
 model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX".format(output_dir),
@@ -98,6 +103,7 @@ model.train(tokenized_datasets[2]["train"],
             save_model=True)
 del model
 gc.collect()
+torch.cuda.empty_cache()
 
 for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages):
     model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir),
@@ -107,6 +113,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
     metrics["en_XX_tuned_es_XX_and_ru_RU_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     gc.collect()
+    torch.cuda.empty_cache()
 
 metrics_df = pd.DataFrame.from_dict(metrics, orient='index')
 metrics_df.to_csv("{}/metrics.csv".format(output_dir))

@@ -61,7 +61,6 @@ class MBartSummarizationModel:
         self.summarization_model.config.forced_bos_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
         self.summarization_model.tokenizer = self.tokenizer
         self.summarization_model.output_dir = output_dir
-        self.summarization_trainer = None
 
     def decode_labels(self, predictions, labels):
         decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
@@ -86,27 +85,34 @@ class MBartSummarizationModel:
 
         return {k: round(v, 4) for k, v in result.items()}
 
-    def train(self, train_data, validation_data, output_dir, save_model=False):
+    def train(self, train_data, validation_data, save_model=False):
         data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.summarization_model)
-        self.summarization_trainer = Seq2SeqTrainer(
+        trainer = Seq2SeqTrainer(
             self.summarization_model,
-            create_training_arguments(output_dir),
+            create_training_arguments(self.summarization_model.output_dir),
             train_dataset=train_data,
             eval_dataset=validation_data,
             data_collator=data_collator,
             compute_metrics=self.calculate_metrics
         )
-        self.summarization_trainer.train(resume_from_checkpoint=False)
+        trainer.train(resume_from_checkpoint=False)
         if save_model:
-            self.summarization_trainer.save_model(output_dir)
+            trainer.save_model(self.summarization_model.output_dir)
 
     def test_predictions(self, test_data):
-        test_results = self.summarization_trainer.predict(
+        data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.summarization_model)
+        trainer = Seq2SeqTrainer(
+            self.summarization_model,
+            create_training_arguments(self.summarization_model.output_dir),
+            data_collator=data_collator,
+            compute_metrics=self.calculate_metrics
+        )
+        test_results = trainer.predict(
             test_data,
             metric_key_prefix="test",
             max_length=self.max_target_length,
             num_beams=5
         )
-        self.summarization_trainer.log_metrics("test", test_results.metrics)
-        self.summarization_trainer.save_metrics("test", test_results.metrics)
+        trainer.log_metrics("test", test_results.metrics)
+        trainer.save_metrics("test", test_results.metrics)
         return test_results.metrics

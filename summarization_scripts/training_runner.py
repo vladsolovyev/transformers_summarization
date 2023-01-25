@@ -64,7 +64,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
 
 # zero shot. Evaluate spanish and russian datasets using english model
 for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_languages[1:3]):
-    model = MBartSummarizationModel(model_name="checkpoints/checkpoint-18000",
+    model = MBartSummarizationModel(model_name="{}/en_XX".format(output_dir),
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_zero_{}".format(output_dir, model_language))

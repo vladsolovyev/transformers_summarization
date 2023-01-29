@@ -80,9 +80,9 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                         tgt_lang=model_language,
                                         output_dir="{}/en_XX_tuned_{}_{}".format(output_dir, model_language, data_size))
         model.train(Dataset.from_dict(tokenized_dataset["train"][:data_size]),
-                    Dataset.from_dict(tokenized_dataset["validation"][:data_size]))
+                    tokenized_dataset["validation"])
         metrics["en_XX_tuned_{}_{}".format(model_language, data_size)] = \
-            model.test_predictions(Dataset.from_dict(tokenized_dataset["test"][:data_size]))
+            model.test_predictions(tokenized_dataset["test"])
         del model
         free_memory()
 

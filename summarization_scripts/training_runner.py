@@ -43,6 +43,9 @@ def preprocess_function(dataset_split):
 
 for dataset_language, model_language in zip(dataset_languages, model_languages):
     dataset = load_dataset("GEM/xlsum", dataset_language)
+    for split in dataset:
+        dataset[split] = dataset[split].filter(
+            lambda sample: len(sample["text"].split()) > 20 and len(sample["target"].split()) > 10)
     tokenized_datasets.append(dataset.map(preprocess_function, batched=True))
     del dataset
 

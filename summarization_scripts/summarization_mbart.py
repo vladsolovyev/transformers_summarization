@@ -27,17 +27,16 @@ def create_training_arguments(output_dir):
     batch_size = 4
     return Seq2SeqTrainingArguments(
         output_dir,
-        evaluation_strategy="epoch",
+        evaluation_strategy="no",
         save_strategy="no",
         logging_steps=100,
         do_train=True,
-        do_eval=True,
+        do_eval=False,
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         weight_decay=0.01,
         num_train_epochs=1,
-        predict_with_generate=True,
         fp16=False,
         overwrite_output_dir=True
     )
@@ -85,15 +84,13 @@ class MBartSummarizationModel:
 
         return {k: round(v, 4) for k, v in result.items()}
 
-    def train(self, train_data, validation_data, save_model=False):
+    def train(self, train_data, save_model=False):
         data_collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.summarization_model)
         trainer = Seq2SeqTrainer(
             self.summarization_model,
             create_training_arguments(self.summarization_model.output_dir),
             train_dataset=train_data,
-            eval_dataset=validation_data,
-            data_collator=data_collator,
-            compute_metrics=self.calculate_metrics
+            data_collator=data_collator
         )
         trainer.train(resume_from_checkpoint=False)
         if save_model:

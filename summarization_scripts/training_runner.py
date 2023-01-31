@@ -43,6 +43,7 @@ def preprocess_function(dataset_split):
 
 for dataset_language, model_language in zip(dataset_languages, model_languages):
     dataset = load_dataset("GEM/xlsum", dataset_language)
+    dataset.pop("validation")
     for split in dataset:
         dataset[split] = dataset[split].filter(
             lambda sample: len(sample["text"].split()) > 20 and len(sample["target"].split()) > 10)
@@ -82,8 +83,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                         src_lang=model_language,
                                         tgt_lang=model_language,
                                         output_dir="{}/en_XX_tuned_{}_{}".format(output_dir, model_language, data_size))
-        model.train(Dataset.from_dict(tokenized_dataset["train"][:data_size]),
-                    tokenized_dataset["validation"])
+        model.train(Dataset.from_dict(tokenized_dataset["train"][:data_size]))
         metrics["en_XX_tuned_{}_{}".format(model_language, data_size)] = \
             model.test_predictions(tokenized_dataset["test"])
         del model
@@ -95,9 +95,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_tuned_{}".format(output_dir, model_language))
-    model.train(tokenized_dataset["train"],
-                tokenized_dataset["validation"],
-                save_model=(model_language == "es_XX"))
+    model.train(tokenized_dataset["train"], save_model=(model_language == "es_XX"))
     metrics["en_XX_tuned_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     free_memory()
@@ -108,7 +106,6 @@ model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX".format(output_
                                 tgt_lang="ru_RU",
                                 output_dir="{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir))
 model.train(tokenized_datasets[2]["train"],
-            tokenized_datasets[2]["validation"],
             save_model=True)
 del model
 free_memory()

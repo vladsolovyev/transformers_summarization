@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import torch
 from GPUtil import showUtilization
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, concatenate_datasets, Split
 
 from summarization_mbart import MBartSummarizationModel
 from transformers import MBartTokenizer
@@ -60,7 +60,6 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
                                     tgt_lang=model_language,
                                     output_dir="{}/{}".format(output_dir, model_language))
     model.train(tokenized_dataset["train"],
-                tokenized_dataset["validation"],
                 save_model=(model_language == "en_XX"))
     metrics[model_language] = model.test_predictions(tokenized_dataset["test"])
     del model
@@ -95,27 +94,24 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     src_lang=model_language,
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_tuned_{}".format(output_dir, model_language))
-    model.train(tokenized_dataset["train"], save_model=(model_language == "es_XX"))
+    model.train(tokenized_dataset["train"])
     metrics["en_XX_tuned_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     free_memory()
 
 # all three languages together
-model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX".format(output_dir),
-                                src_lang="ru_RU",
-                                tgt_lang="ru_RU",
-                                output_dir="{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir))
-model.train(tokenized_datasets[2]["train"],
-            save_model=True)
+multilingual_dataset = concatenate_datasets(tokenized_datasets, split=Split.TRAIN).shuffle(seed=42)
+model = MBartSummarizationModel(output_dir="{}/multilingual".format(output_dir))
+model.train(multilingual_dataset, save_model=True)
 del model
 free_memory()
 
 for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages):
-    model = MBartSummarizationModel(model_name="{}/en_XX_tuned_es_XX_and_ru_RU".format(output_dir),
+    model = MBartSummarizationModel(model_name="{}/multilingual".format(output_dir),
                                     src_lang=model_language,
                                     tgt_lang=model_language,
-                                    output_dir="{}/en_XX_tuned_es_XX_and_ru_RU_{}".format(output_dir, model_language))
-    metrics["en_XX_tuned_es_XX_and_ru_RU_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
+                                    output_dir="{}/multilingual_{}".format(output_dir, model_language))
+    metrics["multilingual_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
     del model
     free_memory()
 

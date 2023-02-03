@@ -24,7 +24,7 @@ def calculate_bert_score(predictions, references):
 
 
 def create_training_arguments(output_dir):
-    batch_size = 1
+    batch_size = 4
     return Seq2SeqTrainingArguments(
         output_dir,
         evaluation_strategy="no",
@@ -34,7 +34,9 @@ def create_training_arguments(output_dir):
         do_eval=False,
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
-        gradient_accumulation_steps=4,
+        per_device_eval_batch_size=16,
+        eval_accumulation_steps=8,
+        gradient_accumulation_steps=8,
         gradient_checkpointing=True,
         predict_with_generate=True,
         weight_decay=0.01,

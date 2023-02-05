@@ -18,6 +18,11 @@ tokenized_datasets = []
 metrics = dict()
 
 
+def save_metrics():
+    metrics_df = pd.DataFrame.from_dict(metrics, orient='index')
+    metrics_df.to_csv("{}/metrics.csv".format(output_dir))
+
+
 def free_memory():
     showUtilization()
     gc.collect()
@@ -62,6 +67,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
     model.train(tokenized_dataset["train"],
                 save_model=(model_language == "en_XX"))
     metrics[model_language] = model.test_predictions(tokenized_dataset["test"])
+    save_metrics()
     del model
     free_memory()
 
@@ -72,6 +78,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     tgt_lang=model_language,
                                     output_dir="{}/en_XX_zero_{}".format(output_dir, model_language))
     metrics["en_XX_zero_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
+    save_metrics()
     del model
     free_memory()
 
@@ -85,6 +92,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
         model.train(Dataset.from_dict(tokenized_dataset["train"][:data_size]))
         metrics["en_XX_tuned_{}_{}".format(model_language, data_size)] = \
             model.test_predictions(tokenized_dataset["test"])
+        save_metrics()
         del model
         free_memory()
 
@@ -96,6 +104,7 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
                                     output_dir="{}/en_XX_tuned_{}".format(output_dir, model_language))
     model.train(tokenized_dataset["train"])
     metrics["en_XX_tuned_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
+    save_metrics()
     del model
     free_memory()
 
@@ -112,8 +121,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets, model_languages
                                     tgt_lang=model_language,
                                     output_dir="{}/multilingual_{}".format(output_dir, model_language))
     metrics["multilingual_{}".format(model_language)] = model.test_predictions(tokenized_dataset["test"])
+    save_metrics()
     del model
     free_memory()
 
-metrics_df = pd.DataFrame.from_dict(metrics, orient='index')
-metrics_df.to_csv("{}/metrics.csv".format(output_dir))
+save_metrics()

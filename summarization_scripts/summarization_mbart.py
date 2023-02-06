@@ -9,13 +9,13 @@ nltk.download('punkt')
 
 
 def calculate_rouge_score(predictions, references):
-    return evaluate.load("rouge").compute(predictions=predictions,
+    return evaluate.load("rouge", cache_dir="./cache").compute(predictions=predictions,
                                           references=references,
                                           use_stemmer=True)
 
 
 def calculate_bert_score(predictions, references):
-    bert_result = evaluate.load("bertscore").compute(predictions=predictions,
+    bert_result = evaluate.load("bertscore", cache_dir="./cache").compute(predictions=predictions,
                                                      references=references,
                                                      model_type="bert-base-multilingual-cased")
     if bert_result["hashcode"]:
@@ -34,8 +34,8 @@ def create_training_arguments(output_dir):
         do_eval=False,
         learning_rate=2e-5,
         per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=16,
-        eval_accumulation_steps=8,
+        per_device_eval_batch_size=8,
+        eval_accumulation_steps=4,
         gradient_accumulation_steps=8,
         gradient_checkpointing=True,
         predict_with_generate=True,
@@ -58,8 +58,8 @@ class MBartSummarizationModel:
         self.max_input_length = max_input_length
         self.max_target_length = max_target_length
         self.tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_max_length=max_input_length,
-                                                        src_lang=src_lang, tgt_lang=tgt_lang)
-        self.summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name)
+                                                        src_lang=src_lang, tgt_lang=tgt_lang, cache_dir="./cache")
+        self.summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name, cache_dir="./cache")
         self.summarization_model.config.decoder_start_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
         self.summarization_model.config.forced_bos_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
         self.summarization_model.tokenizer = self.tokenizer

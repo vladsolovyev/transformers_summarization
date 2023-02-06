@@ -11,7 +11,7 @@ from transformers import MBartTokenizer
 
 MAX_INPUT_LENGTH = 1024
 MAX_TARGET_LENGTH = 512
-tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_max_length=MAX_INPUT_LENGTH)
+tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_max_length=MAX_INPUT_LENGTH, cache_dir="./cache")
 dataset_languages = ["english", "spanish", "russian"]
 model_languages = ["en_XX", "es_XX", "ru_RU"]
 tokenized_datasets = []
@@ -47,7 +47,7 @@ def preprocess_function(dataset_split):
 
 
 for dataset_language, model_language in zip(dataset_languages, model_languages):
-    dataset = load_dataset("GEM/xlsum", dataset_language)
+    dataset = load_dataset("GEM/xlsum", dataset_language, cache_dir="./cache")
     dataset.pop("validation")
     for split in dataset:
         dataset[split] = dataset[split].filter(

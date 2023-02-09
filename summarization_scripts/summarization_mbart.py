@@ -2,7 +2,7 @@ import evaluate
 import nltk
 import numpy as np
 
-from summarization_scripts.utils.multilingual_tokenizer import MultilingualTokenizer
+from utils.multilingual_tokenizer import MultilingualTokenizer
 from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, \
     MBartTokenizer, MBartForConditionalGeneration
 

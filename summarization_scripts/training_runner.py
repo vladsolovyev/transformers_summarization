@@ -43,6 +43,7 @@ def preprocess_function(dataset_split):
                           truncation=True)
 
     model_inputs["labels"] = summaries["input_ids"]
+    tokenizer.lang_code_to_id[model_language]
     return model_inputs
 
 
@@ -109,7 +110,8 @@ for tokenized_dataset, model_language in zip(tokenized_datasets[1:3], model_lang
     free_memory()
 
 # all three languages together
-multilingual_dataset = concatenate_datasets(tokenized_datasets, split=Split.TRAIN).shuffle(seed=42)
+multilingual_dataset =\
+    concatenate_datasets([tokenized_dataset["train"] for tokenized_dataset in tokenized_datasets]).shuffle(seed=42)
 model = MBartSummarizationModel(output_dir="{}/multilingual".format(output_dir))
 model.train(multilingual_dataset, save_model=True)
 del model

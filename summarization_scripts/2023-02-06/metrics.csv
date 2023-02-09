@@ -1,4 +1,7 @@
 ,test_loss,test_rouge1,test_rouge2,test_rougeL,test_rougeLsum,test_bert_score_precision,test_bert_score_recall,test_bert_score_f1,test_gen_len,test_runtime,test_samples_per_second,test_steps_per_second
+en_benchmark,,37.601,15.1536,29.8817,,,,,,,,
+es_benchmark,,31.5071,11.8767,24.0746,,,,,,,,
+ru_benchmark,,32.2164,13.6386,26.1689,,,,,,,,
 en_XX,1.7237106561660767,36.9098,13.9169,27.7818,27.8784,75.7593,77.5899,76.6245,41.4558,3806.7366,3.017,0.377
 es_XX,2.148480176925659,31.8336,11.6113,22.8031,23.2832,72.4647,72.0434,72.1847,46.878,2014.271,2.335,0.292
 ru_RU,1.7304913997650146,9.9308,2.7699,9.7545,9.7913,71.6688,73.2652,72.3978,65.4645,4205.0623,1.825,0.228

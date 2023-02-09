@@ -2,22 +2,24 @@ import evaluate
 import nltk
 import numpy as np
 
+from summarization_scripts.utils.multilingual_tokenizer import MultilingualTokenizer
 from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, \
     MBartTokenizer, MBartForConditionalGeneration
 
 nltk.download('punkt')
 
 
-def calculate_rouge_score(predictions, references):
+def calculate_rouge_score(predictions, references, language):
     return evaluate.load("rouge", cache_dir="./cache").compute(predictions=predictions,
-                                          references=references,
-                                          use_stemmer=True)
+                                                               references=references,
+                                                               tokenizer=MultilingualTokenizer(language=language,
+                                                                                               use_stemmer=True))
 
 
 def calculate_bert_score(predictions, references):
     bert_result = evaluate.load("bertscore", cache_dir="./cache").compute(predictions=predictions,
-                                                     references=references,
-                                                     model_type="bert-base-multilingual-cased")
+                                                                          references=references,
+                                                                          model_type="bert-base-multilingual-cased")
     if bert_result["hashcode"]:
         del bert_result["hashcode"]
     return {"bert_score_{}".format(k): np.mean(v) for k, v in bert_result.items()}
@@ -79,8 +81,8 @@ class MBartSummarizationModel:
         predictions, labels = eval_pred
         decoded_preds, decoded_labels = self.decode_labels(predictions, labels)
 
-        results = calculate_rouge_score(decoded_preds, decoded_labels) | calculate_bert_score(decoded_preds,
-                                                                                              decoded_labels)
+        results = calculate_rouge_score(decoded_preds, decoded_labels, language=self.tokenizer.tgt_lang) \
+                  | calculate_bert_score(decoded_preds, decoded_labels)
         result = {key: value * 100 for key, value in results.items()}
 
         prediction_lens = [np.count_nonzero(pred != self.tokenizer.pad_token_id) for pred in predictions]

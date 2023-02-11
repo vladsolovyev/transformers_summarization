@@ -13,7 +13,7 @@ def calculate_rouge_score(predictions, references, language):
     return evaluate.load("rouge", cache_dir="./cache").compute(predictions=predictions,
                                                                references=references,
                                                                tokenizer=MultilingualTokenizer(language=language,
-                                                                                               use_stemmer=True))
+                                                                                               use_stemmer=True).tokenize)
 
 
 def calculate_bert_score(predictions, references):

@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import torch
 from GPUtil import showUtilization
-from datasets import load_dataset, Dataset, concatenate_datasets, Split
+from datasets import load_dataset, Dataset, concatenate_datasets
 
 from summarization_mbart import MBartSummarizationModel
 from transformers import MBartTokenizer
@@ -37,13 +37,10 @@ def preprocess_function(dataset_split):
     model_inputs = tokenizer(dataset_split["text"],
                              max_length=MAX_INPUT_LENGTH,
                              truncation=True)
-
     summaries = tokenizer(text_target=dataset_split["target"],
                           max_length=MAX_TARGET_LENGTH,
                           truncation=True)
-
     model_inputs["labels"] = summaries["input_ids"]
-    tokenizer.lang_code_to_id[model_language]
     return model_inputs
 
 

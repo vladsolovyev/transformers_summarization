@@ -1,12 +1,25 @@
 import evaluate
 import nltk
 import numpy as np
+from torch import nn
 
 from utils.multilingual_tokenizer import MultilingualTokenizer
 from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, \
     MBartTokenizer, MBartForConditionalGeneration
 
 nltk.download('punkt')
+
+
+def freeze_embeds(model):
+    freeze_params(model.model.shared)
+    for d in [model.model.encoder, model.model.decoder]:
+        freeze_params(d.embed_positions)
+        freeze_params(d.embed_tokens)
+
+
+def freeze_params(model: nn.Module):
+    for par in model.parameters():
+        par.requires_grad = False
 
 
 def calculate_rouge_score(predictions, references, language):
@@ -55,7 +68,8 @@ class MBartSummarizationModel:
                  max_target_length=512,
                  src_lang="en_XX",
                  tgt_lang="en_XX",
-                 output_dir=None):
+                 output_dir=None,
+                 freeze_embeddings=False):
         self.model_name = model_name
         self.max_input_length = max_input_length
         self.max_target_length = max_target_length
@@ -66,6 +80,8 @@ class MBartSummarizationModel:
         self.summarization_model.config.forced_bos_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
         self.summarization_model.tokenizer = self.tokenizer
         self.summarization_model.output_dir = output_dir
+        if freeze_embeddings:
+            freeze_embeds(self.summarization_model)
 
     def decode_labels(self, predictions, labels):
         decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)

@@ -12,8 +12,6 @@ from transformers import MBartTokenizer
 
 MAX_INPUT_LENGTH = 1024
 MAX_TARGET_LENGTH = 512
-tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_max_length=MAX_INPUT_LENGTH,
-                                           cache_dir="./cache")
 dataset_languages = ["english", "spanish", "russian"]
 model_languages = ["en_XX", "es_XX", "ru_RU"]
 tokenized_datasets = []
@@ -33,7 +31,7 @@ def free_memory():
     showUtilization()
 
 
-def preprocess_function(dataset_split):
+def preprocess_function(dataset_split, tokenizer):
     model_inputs = tokenizer(dataset_split["text"],
                              max_length=MAX_INPUT_LENGTH,
                              truncation=True)
@@ -44,14 +42,14 @@ def preprocess_function(dataset_split):
     return model_inputs
 
 
-def initialize_xlsum_dataset():
+def initialize_xlsum_dataset(tokenizer):
     for dataset_language, model_language in zip(dataset_languages, model_languages):
         dataset = load_dataset("GEM/xlsum", dataset_language, cache_dir="./cache")
         dataset.pop("validation")
-        tokenize_dataset(dataset, model_language)
+        tokenize_dataset(dataset, model_language, tokenizer)
 
 
-def initialize_wikilingua_datasets():
+def initialize_wikilingua_datasets(tokenizer):
     for dataset_language, model_language in zip(dataset_languages, model_languages):
         wikilingua_dataset = dict({"text": list(), "target": list()})
         dataset = load_dataset("wiki_lingua", name=dataset_language)
@@ -62,21 +60,23 @@ def initialize_wikilingua_datasets():
         wikilingua_dataset_df = pd.DataFrame(wikilingua_dataset)
         train, test = train_test_split(wikilingua_dataset_df, test_size=0.1, shuffle=True, random_state=42)
         split_dataset = DatasetDict({"train": Dataset.from_pandas(train), "test": Dataset.from_pandas(test)})
-        tokenize_dataset(split_dataset, model_language)
+        tokenize_dataset(split_dataset, model_language, tokenizer)
 
 
-def tokenize_dataset(dataset, model_language):
+def tokenize_dataset(dataset, model_language, tokenizer):
     tokenizer.src_lang = model_language
     tokenizer.tgt_lang = model_language
     for split in dataset:
         dataset[split] = dataset[split].filter(
             lambda sample: len(sample["text"].split()) > 20 and len(sample["target"].split()) > 10)
-    tokenized_datasets.append(dataset.map(preprocess_function, batched=True))
+    tokenized_datasets.append(dataset.map(lambda sample: preprocess_function(sample, tokenizer), batched=True))
     del dataset
 
 
 def train_and_evaluate_models(freeze_embeddings=False, initialize_dataset=initialize_xlsum_dataset):
-    initialize_dataset()
+    tokenizer = MBartTokenizer.from_pretrained("facebook/mbart-large-cc25", model_max_length=MAX_INPUT_LENGTH,
+                                               cache_dir="./cache")
+    initialize_dataset(tokenizer)
     del tokenizer
     free_memory()
     output_dir = datetime.today().strftime('%Y-%m-%d')

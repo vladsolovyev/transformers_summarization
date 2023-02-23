@@ -52,7 +52,7 @@ def initialize_xlsum_dataset(tokenizer):
 def initialize_wikilingua_datasets(tokenizer):
     for dataset_language, model_language in zip(dataset_languages, model_languages):
         wikilingua_dataset = dict({"text": list(), "target": list()})
-        dataset = load_dataset("wiki_lingua", name=dataset_language)
+        dataset = load_dataset("wiki_lingua", name=dataset_language, cache_dir="./cache")
         for article in dataset["train"]["article"]:
             for document, summary in zip(article["document"], article["summary"]):
                 wikilingua_dataset["text"].append(document)
@@ -156,4 +156,4 @@ def train_and_evaluate_models(freeze_embeddings=False, initialize_dataset=initia
 
 
 if __name__ == "__main__":
-    train_and_evaluate_models(freeze_embeddings=False, initialize_dataset=initialize_wikilingua_datasets)
+    train_and_evaluate_models(freeze_embeddings=False, initialize_dataset=initialize_xlsum_dataset)

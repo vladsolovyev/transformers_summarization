@@ -129,8 +129,10 @@ class MBartSummarizationModel:
         test_results = trainer.predict(
             test_data,
             metric_key_prefix="test",
-            max_length=self.max_target_length,
-            num_beams=5
+            max_length=84,
+            num_beams=5,
+            length_penalty=0.6,
+            no_repeat_ngram_size=2
         )
         trainer.log_metrics("test", test_results.metrics)
         trainer.save_metrics("test", test_results.metrics)

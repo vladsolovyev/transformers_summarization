@@ -77,7 +77,6 @@ class MBartSummarizationModel:
                                                         src_lang=src_lang, tgt_lang=tgt_lang, cache_dir="./cache")
         self.summarization_model = MBartForConditionalGeneration.from_pretrained(self.model_name, cache_dir="./cache")
         self.summarization_model.config.decoder_start_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
-        self.summarization_model.config.forced_bos_token_id = self.tokenizer.lang_code_to_id[tgt_lang]
         self.summarization_model.tokenizer = self.tokenizer
         self.summarization_model.output_dir = output_dir
         if freeze_embeddings:

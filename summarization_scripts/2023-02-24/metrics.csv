@@ -1,4 +1,8 @@
+xlsum without embeddings freezing,,,,,,,,,,,,
 ,test_loss,test_rouge1,test_rouge2,test_rougeL,test_rougeLsum,test_bert_score_precision,test_bert_score_recall,test_bert_score_f1,test_gen_len,test_runtime,test_samples_per_second,test_steps_per_second
+en_benchmark,,37.601,15.1536,29.8817,,,,,,,,
+es_benchmark,,31.5071,11.8767,24.0746,,,,,,,,
+ru_benchmark,,32.2164,13.6386,26.1689,,,,,,,,
 en_XX,1.962792992591858,37.6079,14.4782,29.1694,29.2734,78.6784,76.7099,77.6428,27.2274,2506.7,4.581,0.573
 es_XX,2.4696614742279053,31.4385,10.7399,23.1152,23.5599,74.2654,71.4551,72.7735,30.6524,1256.5587,3.744,0.468
 ru_RU,2.0194029808044434,30.3743,12.0673,23.7127,24.5591,74.6681,71.7653,73.128,35.5478,2311.1824,3.32,0.415
